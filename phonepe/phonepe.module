@@ -1,0 +1,276 @@
+<?php
+
+/**
+ * @file
+ * Contains hook implementations and global functions.
+ */
+
+/**
+ * Implements hook_menu().
+ */
+function phonepe_menu() {
+  $items['phonepe/redirect/%entity_object'] = array(
+    'load arguments' => array('payment'),
+    'title' => 'Go to payment server',
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('phonepe_form_redirect', 2),
+    'access callback' => 'phonepe_form_redirect_access',
+    'access arguments' => array(2),
+    'type' => MENU_CALLBACK,
+  );
+  $items['phonepe/return'] = array(
+    'title' => 'PhonePe return url',
+    'page callback' => 'phonepe_return',
+    'access callback' => 'phonepe_return_access',
+    'type' => MENU_CALLBACK,
+  );
+
+  return $items;
+}
+
+/**
+ * Implements hook_payment_method_controller_info().
+ */
+function phonepe_payment_method_controller_info() {
+  return array('PhonePePaymentMethodController');
+}
+
+/**
+ * Implements hook_entity_load().
+ */
+function phonepe_entity_load(array $entities, $entity_type) {
+  if ($entity_type == 'payment_method') {
+    $pmids = array();
+    foreach ($entities as $payment_method) {
+      if ($payment_method->controller->name == 'PhonePePaymentMethodController') {
+        $pmids[] = $payment_method->pmid;
+      }
+    }
+    if ($pmids) {
+      $query = db_select('phonepe_payment_method')
+        ->fields('phonepe_payment_method')
+        ->condition('pmid', $pmids);
+      $result = $query->execute();
+      while ($data = $result->fetchAssoc()) {
+        $payment_method = $entities[$data['pmid']];
+        $payment_method->controller_data = (array) $data;
+        unset($payment_method->controller_data['pmid']);
+      }
+    }
+  }
+}
+
+/**
+ * Implements hook_ENTITY_TYPE_ACTION().
+ */
+function phonepe_payment_method_insert(PaymentMethod $payment_method) {
+  if ($payment_method->controller->name == 'PhonePePaymentMethodController') {
+    $values = $payment_method->controller_data += $payment_method->controller->controller_data_defaults;
+    $values['pmid'] = $payment_method->pmid;
+    drupal_write_record('phonepe_payment_method', $values);
+  }
+}
+
+/**
+ * Implements hook_ENTITY_TYPE_ACTION().
+ */
+function phonepe_payment_method_update(PaymentMethod $payment_method) {
+  if ($payment_method->controller->name == 'PhonePePaymentMethodController') {
+    $values = $payment_method->controller_data += $payment_method->controller->controller_data_defaults;
+    $values['pmid'] = $payment_method->pmid;
+    drupal_write_record('phonepe_payment_method', $values, 'pmid');
+  }
+}
+
+/**
+ * Implements hook_ENTITY_TYPE_ACTION().
+ */
+function phonepe_payment_method_delete($entity) {
+  if ($entity->controller->name == 'PhonePePaymentMethodController') {
+    db_delete('phonepe_payment_method')
+      ->condition('pmid', $entity->pmid)
+      ->execute();
+  }
+}
+
+/**
+ * Form build callback: implements
+ * PaymentMethodController::payment_method_configuration_form_elements_callback.
+ */
+function phonepe_payment_method_configuration_form_elements(array $form, array &$form_state) {
+  $payment_method = $form_state['payment_method'];
+  $controller = $payment_method->controller;
+  $controller_data = $payment_method->controller_data + $controller->controller_data_defaults;
+
+  $elements['workflow'] = array(
+    '#title' => t('Workflow'),
+    '#type' => 'fieldset',
+  );
+  $elements['workflow']['server'] = array(
+    '#default_value' => $controller_data['server'],
+    '#options' => array(
+      $controller::SERVER_PRODUCTION => ('Production'),
+      $controller::SERVER_TESTING => ('Staging'),
+    ),
+    '#required' => TRUE,
+    '#title' => t('Server'),
+    '#type' => 'radios',
+  );
+  $elements['merchant'] = array(
+    '#title' => t('Merchant Credentials'),
+    '#type' => 'fieldset',
+  );
+  $elements['merchant']['merchantid'] = array(
+    '#default_value' => $controller_data['merchantid'],
+    '#title' => t('Merchant Id'),
+    '#required' => TRUE,
+    '#type' => 'textfield',
+  );
+  $elements['merchant']['apikey1'] = array(
+    '#default_value' => $controller_data['apikey1'],
+    '#description' => t('The API key will be stored as plain text'),
+    '#title' => t('API Key #1'),
+    '#required' => TRUE,
+    '#type' => 'textfield',
+  );
+  $elements['merchant']['apikey2'] = array(
+    '#default_value' => $controller_data['apikey2'],
+    '#description' => t('The API key will be stored as plain text'),
+    '#title' => t('API Key #2'),
+    '#required' => TRUE,
+    '#type' => 'textfield',
+  );
+  $elements['merchant']['apikey3'] = array(
+    '#default_value' => $controller_data['apikey3'],
+    '#description' => t('The API key will be stored as plain text'),
+    '#title' => t('API Key #3'),
+    '#type' => 'textfield',
+  );
+  $elements['merchant']['apikey4'] = array(
+    '#default_value' => $controller_data['apikey4'],
+    '#description' => t('The API key will be stored as plain text'),
+    '#title' => t('API Key #4'),
+    '#type' => 'textfield',
+  );
+  $elements['merchant']['apikey5'] = array(
+    '#default_value' => $controller_data['apikey5'],
+    '#description' => t('The API key will be stored as plain text'),
+    '#title' => t('API Key #5'),
+    '#type' => 'textfield',
+  );
+  $elements['merchant']['apikey6'] = array(
+    '#default_value' => $controller_data['apikey6'],
+    '#description' => t('The API key will be stored as plain text'),
+    '#title' => t('API Key #6'),
+    '#type' => 'textfield',
+  );
+  $elements['merchant']['apikey7'] = array(
+    '#default_value' => $controller_data['apikey7'],
+    '#description' => t('The API key will be stored as plain text'),
+    '#title' => t('API Key #7'),
+    '#type' => 'textfield',
+  );
+  $elements['merchant']['apikey8'] = array(
+    '#default_value' => $controller_data['apikey8'],
+    '#description' => t('The API key will be stored as plain text'),
+    '#title' => t('API Key #8'),
+    '#type' => 'textfield',
+  );
+
+  return $elements;
+}
+
+/**
+ * Implements form validate callback for
+ * phonepe_payment_method_configuration_form_elements().
+ */
+function phonepe_payment_method_configuration_form_elements_validate(array $element, array &$form_state) {
+  $values = drupal_array_get_nested_value($form_state['values'], $element['#parents']);
+
+    $controller_data = &$form_state['payment_method']->controller_data;
+    $controller_data['merchantid'] = $values['merchant']['merchantid'];
+    $controller_data['apikey1'] = $values['merchant']['apikey1'];
+    $controller_data['apikey2'] = $values['merchant']['apikey2'];
+    $controller_data['apikey3'] = $values['merchant']['apikey3'];
+    $controller_data['apikey4'] = $values['merchant']['apikey4'];
+    $controller_data['apikey5'] = $values['merchant']['apikey5'];
+    $controller_data['apikey6'] = $values['merchant']['apikey6'];
+    $controller_data['apikey7'] = $values['merchant']['apikey7'];
+    $controller_data['apikey8'] = $values['merchant']['apikey8'];
+    $controller_data['server'] = $values['workflow']['server'];
+
+}
+
+/**
+ * Curl redirect to PhonePe.
+ */
+function phonepe_form_redirect(array $form, array &$form_state, Payment $payment) {
+
+  $paymentdata = $payment->method->controller->phonepePostData($payment);  
+
+  $options = array(
+    'method' => 'POST',
+    'data' => $paymentdata['request'], 
+    'headers' => array(
+      'Content-Type' => 'application/json',
+      'X-CALLBACK-URL' => $paymentdata['x-callback-url'],
+      'X-CALL-MODE' => 'POST',
+      'X-REDIRECT-URL' => $paymentdata['x-callback-url'],
+      'X-REDIRECT-MODE' => 'POST',
+      'X-VERIFY' => $paymentdata['x-verify']
+    ),
+  );
+  $result = chr_curl_http_request($paymentdata['server'], $options);
+  drupal_goto($result->redirect_url);
+}
+
+/**
+ * Access callback for the redirect form.
+ *
+ * @param Payment $payment
+ *   The payment to check access to.
+ * @param object $user
+ *   An optional user to check access for. If NULL, then the currently logged
+ *   in user is used.
+ *
+ * @return bool
+ */
+function phonepe_form_redirect_access(Payment $payment, $account = NULL) {
+  global $user;
+  return is_a($payment->method->controller, 'PhonePePaymentMethodController')
+    && payment_status_is_or_has_ancestor($payment->getStatus()->status, PAYMENT_STATUS_PENDING)
+    && isset($_SESSION['phonepe_pid']) && $_SESSION['phonepe_pid'] == $payment->pid;
+}
+
+/**
+ * Processes a return request.
+ *
+ * @return NULL
+ */
+function phonepe_return() {
+  $controller = payment_method_controller_load('PhonePePaymentMethodController');
+  $pid = $_SESSION['phonepe_pid'];
+  $data = $controller->responseData();
+  $payment = entity_load_single('payment', $pid);
+  $payment->method->controller->processPhonePePayment($data,$payment);
+}
+
+/**
+ * Checks access for the return URL.
+ *
+ * @return bool
+ */
+function phonepe_return_access() {
+  $controller = payment_method_controller_load('PhonePePaymentMethodController');
+  $data = $controller->responseData();
+
+  if (isset($data['code']) && isset($data['checksum'])) {
+    $pid = $_SESSION['phonepe_pid'];
+    $payment = entity_load_single('payment', $pid);
+
+    if ($payment->method->controller->checkTransactionStatus($data, $payment)) {
+      return TRUE;
+    }
+  }
+  return FALSE;
+}
